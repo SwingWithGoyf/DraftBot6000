@@ -45,38 +45,6 @@ module.exports = function(controller) {
 
     });
 
-    // listen for a user saying "add <something>", and then add it to the user's list
-    // store the new list in the storage system
-    controller.hears(['add (.*)'],'direct_message,direct_mention,mention', function(bot, message) {
-
-        var newtask = message.match[1];
-        controller.storage.users.get(message.user, function(err, user) {
-
-            if (!user) {
-                user = {};
-                user.id = message.user;
-                user.tasks = [];
-            }
-
-            user.tasks.push(newtask);
-
-            controller.storage.users.save(user, function(err,saved) {
-
-                if (err) {
-                    bot.reply(message, 'I experienced an error adding your task: ' + err);
-                } else {
-                    bot.api.reactions.add({
-                        name: 'thumbsup',
-                        channel: message.channel,
-                        timestamp: message.ts
-                    });
-                }
-
-            });
-        });
-
-    });
-
     // listen for a user saying "done <number>" and mark that item as done.
     controller.hears(['done (.*)'],'direct_message', function(bot, message) {
 

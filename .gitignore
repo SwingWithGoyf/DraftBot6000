@@ -3,3 +3,7 @@
 node_modules
 components/routes/_*
 .sass-cache/*
+.data/db/teams/*
+*.json
+*.tmp
+*.txt
