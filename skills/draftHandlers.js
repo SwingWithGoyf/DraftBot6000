@@ -322,6 +322,70 @@ module.exports = function(controller) {
             });   
         });
     });
+    
+    controller.hears(['^list other rares', '^get rare'], 'direct_message,direct_mention,mention', function(bot, message) {
+        
+        controller.storage.teams.get(message.team, function(err, team) {
+            controller.storage.users.all(function(err, allUserData) {
+                if (team && team.drafts && team.drafts.length > 0) {
+                    
+                    bot.startConversation(message, function(err, convo) {
+                        if (!err) {
+                            var messageBody = getDraftListMessageBody(team.drafts, allUserData, "Here are the drafts I have saved (default draft is in green):");
+                            convo.say(messageBody);
+                            convo = pickDraftNumberFromConversation(team, convo, '\n:robot_face:For which number draft would you like to list rares? (Or \'q\' to quit)');
+            
+                            convo.on('end', function(convo) {
+                                if (convo.status == 'completed') {
+
+                                    var draftID = convo.extractResponse('draftID');
+                            
+                                    var draftObj = team.drafts[draftID];
+
+                                    // reload prices for rares
+                                    for (var j = 0; j < draftObj.rareList.length; j++) {
+                                        var rareInfo = draftObj.rareList[j];
+                                        var isFoil = false;
+                                        if (rareInfo.isFoil) {
+                                            isFoil = true;
+                                        }
+
+                                        // take this opportunity to reload the buy and sell price
+                                        loadCardPrices(team, controller, draftID, unDecorateCardName(rareInfo.cardName), isFoil);
+                                    }
+                                    
+                                    if (draftObj.status.id == 2) {
+                                        // also reload prices for redrafts
+                                        for (var j = 0; j < draftObj.redraftPicks.length; j++) {
+                                            var redraftInfo = draftObj.redraftPicks[j];
+                                            var isFoil = false;
+                                            if (redraftInfo.isFoil) {
+                                                isFoil = true;
+                                            }
+                                
+                                            // take this opportunity to reload the buy and sell price
+                                            loadCardPrices(team, controller, draftID, unDecorateCardName(redraftInfo.cardName), isFoil);
+                                        }
+                                        
+                                        var messageBody = getRedraftListMessageBody(draftObj, allUserData, "Here are the rares I have for the specified draft (sorted by buy price descending): \n");
+                                        bot.reply(message, messageBody);
+                                    } else {
+                                        var messageBody = getRareListMessageBody(draftObj, allUserData, "Here are the rares I have for the specified draft (sorted by buy price descending): \n");
+                                        bot.reply(message, messageBody);
+                                    }
+                                } else {
+                                    // this happens if the conversation ended prematurely for some reason
+                                    bot.reply(message, 'OK, nevermind!');
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    bot.reply(message, "No drafts stored, no rares to list!");
+                }
+            });   
+        });
+    });
 
     controller.hears(['^list player', '^get player'], 'direct_message,direct_mention,mention', function(bot, message) {
         
